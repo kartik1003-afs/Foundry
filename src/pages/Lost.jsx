@@ -1,6 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
+import api from '../services/api';
 
 const Lost = () => {
+  const [formData, setFormData] = useState({
+    itemType: '',
+    description: '',
+    location: '',
+    dateLost: '',
+    imageUrl: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage('');
+
+    try {
+      const response = await api.items.createLostItem(formData);
+      
+      if (response.itemId) {
+        setMessage('Lost item reported successfully! We\'ll help you find it.');
+        setFormData({
+          itemType: '',
+          description: '',
+          location: '',
+          dateLost: '',
+          imageUrl: ''
+        });
+      } else {
+        setMessage('Error: ' + (response.error || 'Failed to submit'));
+      }
+    } catch (error) {
+      setMessage('Error: Failed to connect to server');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -10,17 +54,30 @@ const Lost = () => {
             Help us help you find your lost item by providing as much detail as possible.
           </p>
           
-          <form className="space-y-6">
+          {message && (
+            <div className={`p-4 rounded-lg mb-6 ${
+              message.includes('Error') 
+                ? 'bg-red-100 text-red-700 border border-red-200' 
+                : 'bg-green-100 text-green-700 border border-green-200'
+            }`}>
+              {message}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="itemName" className="block text-sm font-medium text-gray-700 mb-2">
                 Item Name *
               </label>
               <input
                 type="text"
-                id="itemName"
-                name="itemName"
+                id="itemType"
+                name="itemType"
+                value={formData.itemType}
+                onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="e.g., Blue backpack, iPhone 13, Silver watch"
+                required
               />
             </div>
             
@@ -99,9 +156,10 @@ const Lost = () => {
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                disabled={isSubmitting}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Lost Item Report
+                {isSubmitting ? 'Submitting...' : 'Submit Lost Item Report'}
               </button>
               <button
                 type="button"

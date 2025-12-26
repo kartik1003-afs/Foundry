@@ -1,6 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 
 const Discover = () => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    itemType: '',
+    location: '',
+    status: 'all'
+  });
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    try {
+      const response = await api.items.getDiscoverItems(filters);
+      setItems(response.items || []);
+    } catch (error) {
+      console.error('Failed to fetch items:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (e) => {
+    const newFilters = {
+      ...filters,
+      [e.target.name]: e.target.value
+    };
+    setFilters(newFilters);
+    fetchItems();
+  };
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,6 +63,9 @@ const Discover = () => {
               </label>
               <select
                 id="category"
+                name="itemType"
+                value={filters.itemType}
+                onChange={handleFilterChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Categories</option>
@@ -91,52 +126,65 @@ const Discover = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((item) => (
-            <div key={item} className="bg-white shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  item % 2 === 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                }`}>
-                  {item % 2 === 0 ? 'Lost' : 'Found'}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {item % 2 === 0 ? '2 days ago' : '1 day ago'}
-                </span>
-              </div>
-              
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {item % 2 === 0 ? 'Blue Backpack' : 'iPhone 13'}
-              </h3>
-              
-              <p className="text-gray-600 text-sm mb-4">
-                {item % 2 === 0 
-                  ? 'Navy blue backpack with multiple compartments. Contains textbooks and laptop.'
-                  : 'Black iPhone 13 with clear case. Lock screen visible.'}
-              </p>
-              
-              <div className="text-sm text-gray-500 mb-4">
-                <p className="flex items-center mb-1">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {item % 2 === 0 ? 'Library 2nd Floor' : 'Student Center'}
-                </p>
-                <p className="flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {item % 2 === 0 ? 'Dec 20, 2024' : 'Dec 21, 2024'}
-                </p>
-              </div>
-              
-              <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                View Details
-              </button>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Loading items...</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {items.map((item) => (
+                <div key={item.id} className="bg-white shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      item.type === 'lost' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                    }`}>
+                      {item.type === 'lost' ? 'Lost' : 'Found'}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(item.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {item.itemType}
+                  </h3>
+                  
+                  <p className="text-gray-600 text-sm mb-4">
+                    {item.description}
+                  </p>
+                  
+                  <div className="text-sm text-gray-500 mb-4">
+                    <p className="flex items-center mb-1">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {item.location}
+                    </p>
+                    <p className="flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {new Date(item.dateLost || item.dateFound).toLocaleDateString()}
+                    </p>
+                  </div>
+                  
+                  <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    View Details
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+            
+            {items.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-600">No items found matching your criteria.</p>
+              </div>
+            )}
+          </>
+        )}
         
         <div className="mt-12 flex justify-center">
           <nav className="flex items-center space-x-2">
