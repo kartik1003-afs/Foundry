@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const Lost = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  if (!isAuthenticated) {
+    navigate('/auth');
+    return null;
+  }
+
   const [formData, setFormData] = useState({
     itemType: '',
     description: '',
