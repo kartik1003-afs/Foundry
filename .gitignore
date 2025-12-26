@@ -1,1 +1,72 @@
+<<<<<<< HEAD
 node_modules
+=======
+﻿# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Virtual Environment
+.venv
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local development
+*.log
+logs/
+data/
+uploads/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# FAISS index files
+*.index
+*.faiss
+
+# Local development settings
+local_settings.py
+
+# Test coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+>>>>>>> AI-Implementation
