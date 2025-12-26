@@ -1,6 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useAuth } from '../contexts/AuthContext';
 
 const Found = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const toastShownRef = useRef(false);
+  
+  useEffect(() => {
+    if (!isAuthenticated && !toastShownRef.current) {
+      toast.warning('Please login first to report a found item');
+      toastShownRef.current = true;
+      navigate('/auth');
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated) {
+    return null;
+  }
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">

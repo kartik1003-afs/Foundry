@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const Lost = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const toastShownRef = useRef(false);
   
+  useEffect(() => {
+    if (!isAuthenticated && !toastShownRef.current) {
+      toast.warning('Please login first to report a lost item');
+      toastShownRef.current = true;
+      navigate('/auth');
+    }
+  }, [isAuthenticated, navigate]);
+
   if (!isAuthenticated) {
-    navigate('/auth');
     return null;
   }
 

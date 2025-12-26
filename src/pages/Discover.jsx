@@ -1,7 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const Discover = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const toastShownRef = useRef(false);
+
+  useEffect(() => {
+    if (!isAuthenticated && !toastShownRef.current) {
+      toast.warning('Please login first to discover items');
+      toastShownRef.current = true;
+      navigate('/auth');
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({

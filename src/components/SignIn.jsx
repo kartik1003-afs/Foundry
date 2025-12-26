@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { signInWithEmailAndPassword, signInWithPopup, googleProvider } from '../firebase';
@@ -63,6 +64,7 @@ const SignIn = () => {
       
       // Login and redirect
       login(userData);
+      toast.success('Signed in successfully!');
       navigate('/');
 
     } catch (error) {
@@ -78,6 +80,7 @@ const SignIn = () => {
       }
       
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -111,11 +114,13 @@ const SignIn = () => {
       
       // Login and redirect
       login(userData);
+      toast.success('Signed in with Google successfully!');
       navigate('/');
 
     } catch (error) {
       console.error('Google sign in error:', error);
       setError('Failed to sign in with Google. Please try again.');
+      toast.error('Failed to sign in with Google. Please try again.');
     } finally {
       setLoading(false);
     }
