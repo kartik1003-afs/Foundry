@@ -125,14 +125,6 @@ const About = () => {
               Foundry is powered by campus community members who look out for one another. 
               Whether you've lost something or found an item, your participation helps make our campus more connected and secure.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                Report Lost Item
-              </button>
-              <button className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors">
-                Report Found Item
-              </button>
-            </div>
           </div>
         </div>
       </div>

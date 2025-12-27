@@ -53,7 +53,7 @@ const Footer = () => {
         
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
           <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
-            © 2024 Foundry. All rights reserved.
+            © 2025 Foundry. All rights reserved.
           </p>
         </div>
       </div>
