@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import ImageUpload from '../components/ImageUpload';
 
 const Lost = () => {
   const { isAuthenticated } = useAuth();
@@ -26,7 +27,7 @@ const Lost = () => {
     description: '',
     location: '',
     dateLost: '',
-    imageUrl: ''
+    images: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
@@ -133,6 +134,13 @@ const Lost = () => {
                 placeholder="Describe your item in detail including color, size, brand, distinguishing features..."
               />
             </div>
+            
+            <ImageUpload
+              onImageUpload={(images) => setFormData({ ...formData, images })}
+              existingImages={formData.images}
+              maxImages={1}
+              label="Upload Image of Lost Item"
+            />
             
             <div>
               <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

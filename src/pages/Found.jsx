@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../contexts/AuthContext';
+import ImageUpload from '../components/ImageUpload';
 
 const Found = () => {
   const { isAuthenticated } = useAuth();
@@ -64,7 +65,7 @@ const Found = () => {
             </div>
             
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description *
               </label>
               <textarea
@@ -75,6 +76,16 @@ const Found = () => {
                 placeholder="Describe the item in detail including color, size, brand, distinguishing features..."
               />
             </div>
+            
+            <ImageUpload
+              onImageUpload={(images) => {
+                // Handle image upload for found items
+                console.log('Found item images:', images);
+              }}
+              existingImages={[]}
+              maxImages={1}
+              label="Upload Image of Found Item"
+            />
             
             <div>
               <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
