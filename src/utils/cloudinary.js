@@ -1,34 +1,29 @@
-// Cloudinary configuration
-const CLOUD_NAME = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || 'demo';
-const UPLOAD_PRESET = 'foundry_preset';
+// Backend API configuration
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export const uploadImage = async (file, folder = 'foundry') => {
   try {
+    console.log('Uploading to backend:', { fileName: file.name, folder });
+
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', UPLOAD_PRESET);
+    formData.append('image', file);
     formData.append('folder', folder);
 
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-      {
-        method: 'POST',
-        body: formData
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/api/upload/upload`, {
+      method: 'POST',
+      body: formData
+    });
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('Backend Error Response:', errorData);
       throw new Error(errorData.error?.message || 'Upload failed');
     }
 
-    const data = await response.json();
-    return {
-      url: data.secure_url,
-      publicId: data.public_id,
-      format: data.format,
-      size: data.bytes
-    };
+    const result = await response.json();
+    console.log('Upload Success:', result);
+    
+    return result.data;
   } catch (error) {
     console.error('Error uploading image:', error);
     throw error;
@@ -36,8 +31,21 @@ export const uploadImage = async (file, folder = 'foundry') => {
 };
 
 export const deleteImage = async (publicId) => {
-  // Note: For security, image deletion should be handled on the backend
-  // This is a placeholder function
-  console.log('Image deletion should be handled on backend for security');
-  return true;
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/upload/delete/${publicId}`, {
+      method: 'DELETE'
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || 'Delete failed');
+    }
+
+    const result = await response.json();
+    console.log('Delete Success:', result);
+    return result.success;
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    throw error;
+  }
 };

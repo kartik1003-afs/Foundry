@@ -2,9 +2,10 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-// Import simple routes (without Firebase for now)
+// Import routes
 const authRoutes = require('./routes/auth-simple');
 const itemRoutes = require('./routes/items-simple');
+const uploadRoutes = require('./routes/upload');
 
 // Initialize Express app
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -32,4 +34,6 @@ app.listen(PORT, () => {
   console.log("  POST /api/auth/create-user");
   console.log("  POST /api/items/lost");
   console.log("  GET  /api/items/discover");
+  console.log("  POST /api/upload/upload");
+  console.log("  DELETE /api/upload/delete/:publicId");
 });

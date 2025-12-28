@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { uploadImage } from '../utils/cloudinary';
+import { uploadImage, deleteImage } from '../utils/cloudinary';
 
 const ImageUpload = ({ onImageUpload, existingImages = [], maxImages = 1, label = "Upload Images" }) => {
   const [uploading, setUploading] = useState(false);
@@ -54,7 +54,10 @@ const ImageUpload = ({ onImageUpload, existingImages = [], maxImages = 1, label 
     const imageToRemove = images[index];
     
     try {
-      // Remove from local state (we'll skip Cloudinary deletion for now to avoid API key issues)
+      // Delete from backend
+      await deleteImage(imageToRemove.publicId);
+      
+      // Remove from local state
       const newImages = images.filter((_, i) => i !== index);
       setImages(newImages);
       onImageUpload(newImages);
