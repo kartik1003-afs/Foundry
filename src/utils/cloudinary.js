@@ -32,7 +32,11 @@ export const uploadImage = async (file, folder = 'foundry') => {
 
 export const deleteImage = async (publicId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/upload/delete/${publicId}`, {
+    // Extract just the public ID without folder prefix
+    const cleanPublicId = publicId.includes('/') ? publicId.split('/').pop() : publicId;
+    const url = `${API_BASE_URL}/api/upload/delete/${cleanPublicId}`;
+    
+    const response = await fetch(url, {
       method: 'DELETE'
     });
 
@@ -42,7 +46,6 @@ export const deleteImage = async (publicId) => {
     }
 
     const result = await response.json();
-    console.log('Delete Success:', result);
     return result.success;
   } catch (error) {
     console.error('Error deleting image:', error);
