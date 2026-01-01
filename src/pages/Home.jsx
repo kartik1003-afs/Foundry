@@ -6,22 +6,15 @@ const Home = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      {/* <div className="bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-blue-900 dark:to-indigo-800 py-20"> */}
-      <div className="relative overflow-hidden bg-gradient-to-br 
-from-indigo-600 via-blue-600 to-purple-600 
-dark:from-indigo-900 dark:via-blue-900 dark:to-purple-900 py-24">
-  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.15),transparent_60%)]"></div>
-        {/* <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"> */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-blue-900 dark:to-indigo-800 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="mb-8">
             <Logo size="large" className="justify-center" />
           </div>
-          {/* <h1 className="text-6xl font-bold text-gray-900 dark:text-white mb-6"> */}
-          <h1 className="text-6xl font-bold text-white mb-6">
+          <h1 className="text-6xl font-bold text-gray-900 dark:text-white mb-6">
             Lost & Found, Powered by AI
           </h1>
-          {/* <p className="text-xl text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto"> */}
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
             Our intelligent matching system helps students recover lost items instantly. 
             No more endless WhatsApp group searches - just smart, campus-wide recovery.
           </p>
