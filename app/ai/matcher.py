@@ -12,10 +12,12 @@ def confidence_label(score):
 
 def find_matches(query_embedding, top_k):
     raw_results = search_vectors(query_embedding, top_k)
+    print(f"Raw results from search: {raw_results}")
 
     final_results = []
     for r in raw_results:
-        if r["score"] >= SCORE_THRESHOLD:
+        print(f"Processing result: {r}")
+        if isinstance(r, dict) and "score" in r and r["score"] >= SCORE_THRESHOLD:
             final_results.append({
                 "item_id": r["item_id"],
                 "score": round(r["score"], 3),
