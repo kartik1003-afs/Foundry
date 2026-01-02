@@ -13,6 +13,8 @@ const Discover = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [availableCategories, setAvailableCategories] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showModal, setShowModal] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     itemType: '',
@@ -175,6 +177,39 @@ const Discover = () => {
       ...prev,
       search: e.target.value
     }));
+  };
+
+  const handleViewDetails = (item) => {
+    setSelectedItem(item);
+    setShowModal(true);
+  };
+
+  const handleContactFinder = () => {
+    if (selectedItem && selectedItem.contactInfo) {
+      const subject = encodeURIComponent(`Found Item: ${selectedItem.itemType}`);
+      
+      let emailBody = `Hi,\n\nI'm interested in your found item: ${selectedItem.itemType}.\n\n` +
+        `Location: ${selectedItem.location}\n` +
+        `Date: ${new Date(selectedItem.dateFound).toLocaleDateString()}\n`;
+      
+      // Add image information if available
+      if (selectedItem.imageUrl) {
+        emailBody += `Image: ${selectedItem.imageUrl}\n`;
+      }
+      
+      emailBody += `\nPlease let me know if this is still available.\n\nThank you!`;
+      
+      const body = encodeURIComponent(emailBody);
+      
+      // Use shorter Gmail URL format
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(selectedItem.contactInfo)}&su=${subject}&body=${body}`;
+      window.open(gmailUrl, '_blank');
+    }
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedItem(null);
   };
 
   const applyFilters = () => {
@@ -365,7 +400,10 @@ const Discover = () => {
                     </p>
                   </div>
                   
-                  <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                  <button 
+                    onClick={() => handleViewDetails(item)}
+                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
                     View Details
                   </button>
                 </div>
@@ -378,6 +416,128 @@ const Discover = () => {
               </div>
             )}
           </>
+        )}
+        
+        {/* Item Details Modal */}
+        {showModal && selectedItem && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Item Details
+                  </h2>
+                  <button
+                    onClick={closeModal}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Status Badge */}
+                  <div className="flex items-center space-x-2">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedItem.reportType === 'lost' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                    }`}>
+                      {selectedItem.reportType === 'lost' ? 'Lost Item' : 'Found Item'}
+                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Reported on {new Date(selectedItem.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  {/* Image */}
+                  {selectedItem.imageUrl && (
+                    <div className="w-full">
+                      <img 
+                        src={selectedItem.imageUrl} 
+                        alt={selectedItem.itemType}
+                        className="w-full rounded-lg object-contain max-h-96"
+                        style={{ maxHeight: '24rem' }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Item Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Item Type</h3>
+                      <p className="text-lg font-medium text-gray-900 dark:text-white">{selectedItem.itemType}</p>
+                    </div>
+                    
+                    {selectedItem.category && (
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Category</h3>
+                        <p className="text-lg font-medium text-gray-900 dark:text-white capitalize">{selectedItem.category}</p>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Location</h3>
+                      <p className="text-lg font-medium text-gray-900 dark:text-white">{selectedItem.location}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Date</h3>
+                      <p className="text-lg font-medium text-gray-900 dark:text-white">
+                        {new Date(selectedItem.dateLost || selectedItem.dateFound).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Description</h3>
+                    <p className="text-gray-900 dark:text-white">{selectedItem.description}</p>
+                  </div>
+
+                  {/* Contact Info (only for found items) */}
+                  {selectedItem.reportType === 'found' && selectedItem.contactInfo && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Contact Information</h3>
+                      <p className="text-gray-900 dark:text-white">{selectedItem.contactInfo}</p>
+                    </div>
+                  )}
+
+                  {/* Additional Details */}
+                  <div className="border-t pt-4">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Additional Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Status:</span>
+                        <span className="ml-2 text-gray-900 dark:text-white capitalize">{selectedItem.status}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Item ID:</span>
+                        <span className="ml-2 text-gray-900 dark:text-white">{selectedItem._id || selectedItem.id}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Close
+                  </button>
+                  {selectedItem.reportType === 'found' && selectedItem.contactInfo && (
+                    <button
+                      onClick={handleContactFinder}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Contact Finder
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
         
         <div className="mt-12 flex justify-center">
