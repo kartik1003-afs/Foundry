@@ -1,16 +1,13 @@
-
 from fastapi import FastAPI, Form
 from app.utils.id_generator import generate_item_id
-
 from app.ai.clip_model import encode_image_url, encode_text
 from app.ai.fusion import fuse_embeddings
 from app.ai.faiss_index import add_vector
 from app.ai.matcher import find_matches
 from app.db.fake_db import insert_item
-from app.config import TOP_K
+from app.config import TOP_K, SCORE_THRESHOLD
 
 app = FastAPI(title="Lost & Found AI System")
-
 
 @app.post("/report")
 def report_item(
@@ -39,8 +36,6 @@ def report_item(
 
     if report_type == "lost":
         # For lost items, find similar found items to help user find their lost item
-        # We need to search only against found items, not all items
-        # This requires modifying the search or maintaining separate indexes
         matches = find_matches(final_emb, TOP_K, report_type="found")
         
         insert_item({
@@ -75,3 +70,7 @@ def report_item(
         }
 
     return {"error": "Invalid report_type (use 'lost' or 'found')"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)

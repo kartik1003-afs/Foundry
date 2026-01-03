@@ -5,7 +5,7 @@ const aiService = require('../services/aiService');
 
 /**
  * POST /items/lost
- * Create a new lost item with AI matching
+ * Create a new lost item with mock matching for testing
  */
 router.post('/lost', async (req, res) => {
   try {
@@ -24,7 +24,6 @@ router.post('/lost', async (req, res) => {
     console.log('Extracted fields:', { itemType, category, description, location, dateLost });
 
     if (!itemType || !description || !location || !dateLost) {
-      console.log('Validation failed - missing fields');
       return res.status(400).json({ 
         error: 'Missing required fields: itemType, description, location, dateLost' 
       });
@@ -46,6 +45,7 @@ router.post('/lost', async (req, res) => {
 
     // Then, send to AI service for embedding and matching
     try {
+      console.log('About to call AI service with:', { imageUrl, description, location, category: itemType, reportType: 'lost' });
       const aiResponse = await aiService.reportItem({
         imageUrl: imageUrl || '',
         description,
@@ -53,28 +53,21 @@ router.post('/lost', async (req, res) => {
         category: itemType,
         reportType: 'lost'
       });
-
-      // Update item with AI-generated ID and matches
-      await database.updateItem(savedItem._id, {
-        itemId: aiResponse.item_id,
-        matches: aiResponse.matches || []
-      });
+      console.log('AI service response received:', aiResponse);
 
       res.status(201).json({ 
         message: 'Lost item created successfully',
         item: {
           ...savedItem,
-          itemId: aiResponse.item_id,
-          matches: aiResponse.matches || []
+          itemId: savedItem._id,
+          matches: aiResponse.matches
         }
       });
 
-    } catch (aiError) {
-      console.error('AI service error:', aiError);
-      // Still save the item even if AI fails
-      res.status(201).json({ 
-        message: 'Lost item created successfully (AI processing pending)',
-        item: savedItem
+    } catch (error) {
+      console.error('AI service error:', error);
+      res.status(500).json({ 
+        error: 'Failed to create lost item' 
       });
     }
 
@@ -88,7 +81,7 @@ router.post('/lost', async (req, res) => {
 
 /**
  * POST /items/found
- * Create a new found item with AI matching
+ * Create a new found item
  */
 router.post('/found', async (req, res) => {
   try {
@@ -147,7 +140,7 @@ router.post('/found', async (req, res) => {
 
     } catch (aiError) {
       console.error('AI service error:', aiError);
-      // Still save the item even if AI fails
+      // Still save item even if AI fails
       res.status(201).json({ 
         message: 'Found item reported successfully (AI processing pending)',
         item: savedItem
@@ -164,7 +157,7 @@ router.post('/found', async (req, res) => {
 
 /**
  * GET /items/discover
- * Get all lost and found items with optional filtering
+ * Get all items with optional filtering
  */
 router.get('/discover', async (req, res) => {
   try {
@@ -264,76 +257,6 @@ router.get('/discover', async (req, res) => {
     res.status(500).json({ 
       error: 'Failed to fetch items' 
     });
-  }
-});
-
-/**
- * GET /items/lost
- * Get all lost items
- */
-router.get('/lost', async (req, res) => {
-  try {
-    const items = await database.getItemsByType('lost');
-    
-    res.json({
-      items: items,
-      total: items.length
-    });
-
-  } catch (error) {
-    console.error('Get lost items error:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch lost items' 
-    });
-  }
-});
-
-/**
- * GET /items/found
- * Get all found items
- */
-router.get('/found', async (req, res) => {
-  try {
-    const items = await database.getItemsByType('found');
-    
-    res.json({
-      items: items,
-      total: items.length
-    });
-
-  } catch (error) {
-    console.error('Get found items error:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch found items' 
-    });
-  }
-});
-
-/**
- * GET /items/test
- * Test filtering logic
- */
-router.get('/test', async (req, res) => {
-  try {
-    const items = await database.getAllItems();
-    console.log(`Total items: ${items.length}`);
-    
-    const lostItems = items.filter(item => item.reportType === 'lost');
-    const foundItems = items.filter(item => item.reportType === 'found');
-    
-    console.log(`Lost items: ${lostItems.length}`);
-    console.log(`Found items: ${foundItems.length}`);
-    
-    res.json({
-      total: items.length,
-      lost: lostItems.length,
-      found: foundItems.length,
-      sampleLost: lostItems.slice(0, 2).map(item => ({ id: item._id, reportType: item.reportType })),
-      sampleFound: foundItems.slice(0, 2).map(item => ({ id: item._id, reportType: item.reportType }))
-    });
-  } catch (error) {
-    console.error('Test error:', error);
-    res.status(500).json({ error: 'Test failed' });
   }
 });
 
