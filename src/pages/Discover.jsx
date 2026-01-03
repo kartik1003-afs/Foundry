@@ -23,6 +23,8 @@ const Discover = () => {
     sortBy: 'newest'
   });
   const [tempFilters, setTempFilters] = useState({ ...filters });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15; // 5 rows × 3 items per row = 15 items per page
 
   useEffect(() => {
     if (!isAuthenticated && !toastShownRef.current) {
@@ -38,6 +40,11 @@ const Discover = () => {
       fetchItems();
     }
   }, [filters, isAuthenticated]);
+
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [filters]);
 
   useEffect(() => {
     // Initial load
@@ -95,25 +102,24 @@ const Discover = () => {
         
         // Combine both results
         filteredItems = [...categoryFiltered, ...itemTypeFiltered];
-        
-        console.log(`Items after category filter (${filters.itemType}): ${categoryFiltered.length}`);
-        console.log(`Items after itemType mapping filter (${filters.itemType}): ${itemTypeFiltered.length}`);
-        console.log(`Total items after itemType filter (${filters.itemType}): ${filteredItems.length}`);
+        console.log(`Items after itemType filter (${filters.itemType}): ${filteredItems.length}`);
       }
       
       // Apply search filter
       if (filters.search) {
+        console.log(`Filtering by search: "${filters.search}"`);
         const searchLower = filters.search.toLowerCase();
         filteredItems = filteredItems.filter(item => 
           item.itemType?.toLowerCase().includes(searchLower) ||
           item.description?.toLowerCase().includes(searchLower) ||
           item.location?.toLowerCase().includes(searchLower)
         );
-        console.log(`Items after search filter (${filters.search}): ${filteredItems.length}`);
+        console.log(`Items after search filter: ${filteredItems.length}`);
       }
       
       // Apply date range filter
       if (filters.dateRange) {
+        console.log(`Filtering by dateRange: ${filters.dateRange}`);
         const now = new Date();
         const cutoffDate = new Date();
         
@@ -157,8 +163,12 @@ const Discover = () => {
       
       setItems(filteredItems);
       console.log('Final filtered items:', filteredItems.length);
+      
+      // Reset to page 1 when filters change
+      setCurrentPage(1);
     } catch (error) {
       console.error('Failed to fetch items:', error);
+      toast.error('Failed to fetch items');
     } finally {
       setLoading(false);
     }
@@ -362,8 +372,17 @@ const Discover = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {items.map((item) => (
+            {/* Pagination calculation - only affects display, not filtering */}
+            {(() => {
+              const totalPages = Math.ceil(items.length / itemsPerPage);
+              const startIndex = (currentPage - 1) * itemsPerPage;
+              const endIndex = startIndex + itemsPerPage;
+              const currentItems = items.slice(startIndex, endIndex);
+              
+              return (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {currentItems.map((item) => (
                 <div key={item._id || item.id} className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -409,12 +428,48 @@ const Discover = () => {
                 </div>
               ))}
             </div>
-            
-            {items.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-600 dark:text-gray-300">No items found matching your criteria.</p>
-              </div>
-            )}
+                  
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="mt-8 flex justify-center items-center space-x-4">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === 1
+                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        Previous
+                      </button>
+                      
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === totalPages
+                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                  
+                  {items.length === 0 && (
+                    <div className="text-center py-12">
+                      <p className="text-gray-600 dark:text-gray-300">No items found matching your criteria.</p>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </>
         )}
         
@@ -539,26 +594,6 @@ const Discover = () => {
             </div>
           </div>
         )}
-        
-        <div className="mt-12 flex justify-center">
-          <nav className="flex items-center space-x-2">
-            <button className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
-              Previous
-            </button>
-            <button className="px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg">
-              1
-            </button>
-            <button className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
-              2
-            </button>
-            <button className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
-              3
-            </button>
-            <button className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
-              Next
-            </button>
-          </nav>
-        </div>
       </div>
     </div>
   );
