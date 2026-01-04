@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const database = require('../services/database');
 const aiService = require('../services/aiService');
+const emailService = require('../services/emailService');
 
 /**
  * POST /items/lost
@@ -125,16 +126,54 @@ router.post('/found', async (req, res) => {
         reportType: 'found'
       });
 
-      // Update item with AI-generated ID (no matches for found items)
+      // Update item with AI-generated ID
       await database.updateItem(savedItem._id, {
         itemId: aiResponse.item_id
       });
+
+      // Check for matches with existing lost items
+      try {
+        console.log('Checking for matches with lost items...');
+        const matchesResponse = await aiService.findSimilarItems(aiResponse.embedding || '', 5);
+        
+        if (matchesResponse && matchesResponse.length > 0) {
+          console.log(`Found ${matchesResponse.length} potential matches for found item`);
+          
+          // Get detailed information for matched lost items
+          for (const match of matchesResponse) {
+            if (match.score > 0.7) { // Only send notifications for high-confidence matches
+              try {
+                // Find the corresponding lost item in database
+                const lostItems = await database.getAllItems();
+                const matchedLostItem = lostItems.find(item => 
+                  item.reportType === 'lost' && 
+                  item.itemId === match.item_id
+                );
+                
+                if (matchedLostItem && matchedLostItem.contactInfo) {
+                  console.log(`Sending match notification for match score: ${match.score}`);
+                  await emailService.sendMatchNotification(
+                    matchedLostItem,
+                    { ...savedItem, itemId: aiResponse.item_id },
+                    match.score
+                  );
+                }
+              } catch (emailError) {
+                console.error('Failed to send email notification:', emailError);
+              }
+            }
+          }
+        }
+      } catch (matchError) {
+        console.error('Error finding matches:', matchError);
+      }
 
       res.status(201).json({ 
         message: 'Found item reported successfully',
         item: {
           ...savedItem,
-          itemId: aiResponse.item_id
+          itemId: aiResponse.item_id,
+          matchesProcessed: true
         }
       });
 

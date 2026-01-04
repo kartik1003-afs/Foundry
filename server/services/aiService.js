@@ -20,6 +20,11 @@ class AIService {
         },
       });
 
+      // Extract embedding from response if available for future matching
+      if (response.data.embedding) {
+        response.data.embedding = response.data.embedding;
+      }
+
       return response.data;
     } catch (error) {
       console.error('Error reporting item to AI service:', error);
