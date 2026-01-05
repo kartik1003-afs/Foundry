@@ -102,23 +102,24 @@ def report_item(
             "category": category,
             "location": location
         })
-
+        matches = find_matches(final_emb, TOP_K)
         add_vector(final_emb, item_id)
-
+        
         return {
             "status": "success",
             "message": "Lost item reported successfully",
-            "item_id": item_id
+            "item_id": item_id,
+            "matches": matches
         }
 
     elif report_type == "found":
-        matches = find_matches(final_emb, TOP_K)
+        
 
         return {
             "status": "success",
-            "message": "Found item reported",
+            "message": "Found item reported successfully",
             "item_id": item_id,
-            "matches": matches
+            
         }
 
     return {"error": "Invalid report_type (use 'lost' or 'found')"}
