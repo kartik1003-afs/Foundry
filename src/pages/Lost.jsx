@@ -23,6 +23,8 @@ const Lost = () => {
   const [message, setMessage] = useState('');
   const [matches, setMatches] = useState([]);
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const [currentReport, setCurrentReport] = useState(null);
+  const [showNewReportButton, setShowNewReportButton] = useState(false);
   
   useEffect(() => {
     if (!isAuthenticated && !toastShownRef.current) {
@@ -31,6 +33,26 @@ const Lost = () => {
       navigate('/auth');
     }
   }, [isAuthenticated, navigate]);
+
+  // Load saved report and matches from localStorage on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      const savedReport = localStorage.getItem('currentLostReport');
+      const savedMatches = localStorage.getItem('currentLostMatches');
+      const savedShowButton = localStorage.getItem('showNewReportButton');
+      
+      if (savedReport && savedMatches) {
+        try {
+          setCurrentReport(JSON.parse(savedReport));
+          setMatches(JSON.parse(savedMatches));
+          setShowNewReportButton(JSON.parse(savedShowButton));
+          setMessage('Lost item reported successfully! Check potential matches below.');
+        } catch (error) {
+          console.error('Error loading saved report:', error);
+        }
+      }
+    }
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return null;
@@ -83,22 +105,27 @@ const Lost = () => {
       if (response.message && response.message.includes('success')) {
         setMessage('Lost item reported successfully!');
         
+        // Save current report and matches to localStorage
+        const reportData = {
+          ...formData,
+          submittedAt: new Date().toISOString()
+        };
+        setCurrentReport(reportData);
+        localStorage.setItem('currentLostReport', JSON.stringify(reportData));
+        
         // Show matches if available
         if (response.item && response.item.matches && response.item.matches.length > 0) {
-          console.log('Matches found:', response.item.matches);
           setMatches(response.item.matches);
           setMessage(`Lost item reported successfully! Found ${response.item.matches.length} potential matches.`);
+          localStorage.setItem('currentLostMatches', JSON.stringify(response.item.matches));
+        } else {
+          setMatches([]);
+          localStorage.setItem('currentLostMatches', JSON.stringify([]));
         }
         
-        // Don't reset form immediately - let user see the success message first
-        // setFormData({
-        //   itemType: '',
-        //   category: '',
-        //   description: '',
-        //   location: '',
-        //   dateLost: '',
-        //   images: []
-        // });
+        // Show the "Submit new lost item" button
+        setShowNewReportButton(true);
+        localStorage.setItem('showNewReportButton', JSON.stringify(true));
       } else {
         setMessage('Error: ' + (response.error || 'Failed to submit'));
       }
@@ -165,7 +192,118 @@ const Lost = () => {
               </div>
             )}
             
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Show current report and matches if they exist */}
+            {currentReport ? (
+              <React.Fragment>
+                <div className="space-y-6">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-green-900 mb-4">
+                      Current Lost Item Report
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Item Name
+                        </h4>
+                        <p className="text-gray-900 dark:text-white">{currentReport.itemType}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Category
+                        </h4>
+                        <p className="text-gray-900 dark:text-white">{currentReport.category}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Description
+                        </h4>
+                        <p className="text-gray-900 dark:text-white">{currentReport.description}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Location
+                        </h4>
+                        <p className="text-gray-900 dark:text-white">{currentReport.location}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Date Lost
+                        </h4>
+                        <p className="text-gray-900 dark:text-white">{currentReport.dateLost}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Show matches if they exist */}
+                  {matches.length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                      <h3 className="text-lg font-semibold text-blue-900 mb-4">
+                        Potential Matches Found ({matches.length})
+                      </h3>
+                      <p className="text-sm text-blue-700 mb-4">
+                        These found items might match what you're looking for:
+                      </p>
+                      <div className="space-y-3">
+                        {matches.map((match, index) => (
+                          <div key={index} className="bg-white p-4 rounded-lg border border-blue-200">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-medium text-gray-900">{match.itemType}</p>
+                                <p className="text-sm text-gray-600">{match.description}</p>
+                                <p className="text-sm text-gray-500">Location: {match.location}</p>
+                                <p className="text-xs text-green-600 font-medium">FOUND ITEM</p>
+                                <button
+                                  onClick={() => openMatchDetails(match)}
+                                  className="mt-2 text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                                >
+                                  View Details
+                                </button>
+                              </div>
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                {Math.round((match.score || 0) * 100)}% match
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Submit new lost item button */}
+                  {showNewReportButton && (
+                    <div className="text-center mt-8">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Clear current report and localStorage
+                          setCurrentReport(null);
+                          setMatches([]);
+                          setShowNewReportButton(false);
+                          localStorage.removeItem('currentLostReport');
+                          localStorage.removeItem('currentLostMatches');
+                          localStorage.removeItem('showNewReportButton');
+                          setMessage('');
+                          setFormData({
+                            itemType: '',
+                            category: '',
+                            description: '',
+                            location: '',
+                            dateLost: '',
+                            images: []
+                          });
+                        }}
+                        className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                      >
+                        Submit New Lost Item
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </React.Fragment>
+            ) : (
+              /* Show normal form if no current report */
+              <React.Fragment>
+                <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="itemType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Item Name *
@@ -288,6 +426,8 @@ const Lost = () => {
                 </button>
               </div>
             </form>
+              </React.Fragment>
+            )}
           </div>
         </div>
       </div>

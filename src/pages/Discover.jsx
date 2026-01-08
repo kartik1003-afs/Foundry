@@ -55,15 +55,12 @@ const Discover = () => {
   }, [isAuthenticated]);
 
   const fetchItems = async () => {
-    console.log('Fetching items with filters:', filters);
     try {
       const response = await api.items.getDiscoverItems({});
-      console.log('API response:', response);
       
       // Set available categories from database
       const categories = [...new Set(response.items.map(item => item.itemType))];
       setAvailableCategories(categories);
-      console.log('Available categories:', categories);
       
       // Apply client-side filtering as workaround
       let filteredItems = response.items || [];
@@ -71,14 +68,10 @@ const Discover = () => {
       // Apply status filter
       if (filters.status && filters.status !== 'all') {
         filteredItems = filteredItems.filter(item => item.reportType === filters.status);
-        console.log(`Items after status filter (${filters.status}): ${filteredItems.length}`);
       }
       
       // Apply itemType filter using category field (new items) and itemType mapping (existing items)
       if (filters.itemType) {
-        console.log(`Filtering by itemType: "${filters.itemType}"`);
-        console.log('Available categories in database:', [...new Set(response.items.map(item => item.category).filter(Boolean))]);
-        console.log('Available itemTypes in database:', [...new Set(response.items.map(item => item.itemType))]);
         
         // First, filter by category field (for properly categorized new items)
         let categoryFiltered = filteredItems.filter(item => item.category === filters.itemType);
@@ -102,24 +95,20 @@ const Discover = () => {
         
         // Combine both results
         filteredItems = [...categoryFiltered, ...itemTypeFiltered];
-        console.log(`Items after itemType filter (${filters.itemType}): ${filteredItems.length}`);
       }
       
       // Apply search filter
       if (filters.search) {
-        console.log(`Filtering by search: "${filters.search}"`);
         const searchLower = filters.search.toLowerCase();
         filteredItems = filteredItems.filter(item => 
           item.itemType?.toLowerCase().includes(searchLower) ||
           item.description?.toLowerCase().includes(searchLower) ||
           item.location?.toLowerCase().includes(searchLower)
         );
-        console.log(`Items after search filter: ${filteredItems.length}`);
       }
       
       // Apply date range filter
       if (filters.dateRange) {
-        console.log(`Filtering by dateRange: ${filters.dateRange}`);
         const now = new Date();
         const cutoffDate = new Date();
         
@@ -144,7 +133,6 @@ const Discover = () => {
           const itemDate = new Date(item.createdAt);
           return itemDate >= cutoffDate;
         });
-        console.log(`Items after dateRange filter (${filters.dateRange}): ${filteredItems.length}`);
       }
       
       // Apply sorting
@@ -162,7 +150,6 @@ const Discover = () => {
       });
       
       setItems(filteredItems);
-      console.log('Final filtered items:', filteredItems.length);
       
       // Reset to page 1 when filters change
       setCurrentPage(1);
@@ -223,12 +210,7 @@ const Discover = () => {
   };
 
   const applyFilters = () => {
-    console.log('Apply Filters clicked');
-    console.log('Temp filters:', tempFilters);
-    console.log('Current filters:', filters);
-    
     setFilters({ ...tempFilters });
-    console.log('Filters updated to:', tempFilters);
   };
 
   const resetFilters = () => {
