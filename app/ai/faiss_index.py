@@ -45,7 +45,7 @@ def save_index():
         json.dump(id_map, f, indent=2)
 
 def sync_with_database():
-    """Sync FAISS index with MongoDB items"""
+    """Sync FAISS index with database items"""
     print("Syncing FAISS index with database...")
     
     try:
@@ -53,14 +53,39 @@ def sync_with_database():
         db_items = get_all_items()
         print(f"Found {len(db_items)} items in database")
         
-        # Create new index and ID map
+        # Load existing index and ID map first
         global index, id_map
-        new_index = faiss.IndexFlatIP(DIM)
-        new_id_map = []
+        current_index = get_index()
+        current_id_map = get_id_map()
         
-        # Add all items from database to index
+        print(f"Current index has {current_index.ntotal} items")
+        print(f"Current ID map has {len(current_id_map)} items")
+        
+        # Check if we need to rebuild index
+        db_item_ids = {item['item_id'] for item in db_items if 'item_id' in item}
+        indexed_item_ids = set(current_id_map)
+        
+        # Find items that are in database but not in index
+        missing_items = []
         for item in db_items:
-            if 'embedding' in item and item['embedding']:
+            if item.get('item_id') not in indexed_item_ids and 'embedding' in item and item['embedding']:
+                missing_items.append(item)
+        
+        print(f"Found {len(missing_items)} items not in index")
+        
+        # Only rebuild if there are missing items or index is empty
+        if missing_items or current_index.ntotal == 0:
+            if current_index.ntotal == 0:
+                print("Index is empty, creating new index...")
+                new_index = faiss.IndexFlatIP(DIM)
+                new_id_map = []
+            else:
+                print("Adding missing items to existing index...")
+                new_index = current_index
+                new_id_map = current_id_map.copy()
+            
+            # Add missing items to index
+            for item in missing_items:
                 try:
                     vector = np.array(item['embedding']).astype("float32")
                     new_index.add(vector)
@@ -68,14 +93,16 @@ def sync_with_database():
                     print(f"Added item {item['item_id']} to index")
                 except Exception as e:
                     print(f"Error adding item {item['item_id']}: {e}")
-        
-        # Replace global variables
-        index = new_index
-        id_map = new_id_map
-        
-        # Save to disk
-        save_index()
-        print(f"Sync complete: {len(new_id_map)} items in index")
+            
+            # Replace global variables
+            index = new_index
+            id_map = new_id_map
+            
+            # Save to disk
+            save_index()
+            print(f"Sync complete: {len(new_id_map)} items in index")
+        else:
+            print("Index is already up to date")
         
     except Exception as e:
         print(f"Error syncing with database: {e}")
@@ -102,12 +129,23 @@ def search_vectors(query_vector, top_k):
     scores, indices = index.search(query_vector, top_k)
     
     results = []
-    for idx, score in zip(indices[0], scores[0]):
-        if idx < len(id_map):
-            results.append({
-                "item_id": id_map[idx],
-                "score": float(score)
-            })
+    # Handle different FAISS return formats
+    if len(indices.shape) == 1:
+        # Single query results
+        for idx, score in zip(indices, scores):
+            if idx < len(id_map):
+                results.append({
+                    "item_id": id_map[idx],
+                    "score": float(score)
+                })
+    else:
+        # Multiple query results (shouldn't happen with single query)
+        for idx, score in zip(indices[0], scores[0]):
+            if idx < len(id_map):
+                results.append({
+                    "item_id": id_map[idx],
+                    "score": float(score)
+                })
     
     print(f"FAISS search returned {len(results)} results")
     return results
