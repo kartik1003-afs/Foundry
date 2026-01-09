@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 // API service for Foundry backend
 const api = {
@@ -62,13 +62,13 @@ const api = {
       return data;
     },
 
-    async getUserLostItems(uid) {
-      const response = await fetch(`${API_BASE_URL}/items/lost/user/${uid}`);
+    async getUserLostItems(email) {
+      const response = await fetch(`${API_BASE_URL}/items/user/${email}`);
       return response.json();
     },
 
-    async getUserFoundItems(uid) {
-      const response = await fetch(`${API_BASE_URL}/items/found/user/${uid}`);
+    async getUserFoundItems(email) {
+      const response = await fetch(`${API_BASE_URL}/items/user/${email}`);
       return response.json();
     },
   },

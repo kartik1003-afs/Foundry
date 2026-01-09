@@ -75,6 +75,12 @@ const Navbar = () => {
             
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
+                <Link
+                  to="/profile"
+                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 text-sm font-medium"
+                >
+                  My Profile
+                </Link>
                 <span className="text-sm text-gray-700 dark:text-gray-300">
                   Welcome, {user.name}
                 </span>
@@ -177,7 +183,14 @@ const Navbar = () => {
                       {user.email}
                     </div>
                   </div>
-                  <div className="mt-3 px-3">
+                  <div className="mt-3 px-3 space-y-2">
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block w-full text-center bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      My Profile
+                    </Link>
                     <button
                       onClick={() => {
                         handleLogout();

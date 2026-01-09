@@ -2,6 +2,65 @@ const express = require('express');
 const router = express.Router();
 const database = require('../services/database');
 const aiService = require('../services/aiService');
+const emailService = require('../services/emailService');
+
+/**
+ * GET /items/user/:email
+ * Get all items reported by a specific user
+ */
+router.get('/user/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    console.log('🔍 Fetching items for user:', email);
+    
+    try {
+      await database.connect();
+      const allItems = await database.getAllItems();
+      console.log('📊 Total items in database:', allItems.length);
+      
+      // Filter items by contactInfo (email)
+      const userItems = allItems.filter(item => 
+        item.contactInfo && item.contactInfo.toLowerCase() === email.toLowerCase()
+      );
+      
+      console.log('🔍 Items matching email:', userItems.length);
+      console.log('📋 Matching items:', userItems.map(item => ({ id: item._id, type: item.reportType, contact: item.contactInfo })));
+      
+      console.log(`Found ${userItems.length} items for user ${email}`);
+      res.json(userItems);
+    } catch (dbError) {
+      console.warn('Database not available, returning empty array:', dbError.message);
+      // Return empty array if database is not available
+      res.json([]);
+    }
+  } catch (error) {
+    console.error('Error fetching user items:', error);
+    res.status(500).json({ error: 'Failed to fetch user items' });
+  }
+});
+
+/**
+ * DELETE /items/:id
+ * Delete an item by ID
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Deleting item:', id);
+    
+    await database.connect();
+    const success = await database.deleteItem(id);
+    
+    if (success) {
+      res.json({ message: 'Item deleted successfully' });
+    } else {
+      res.status(404).json({ error: 'Item not found' });
+    }
+  } catch (error) {
+    console.error('Error deleting item:', error);
+    res.status(500).json({ error: 'Failed to delete item' });
+  }
+});
 
 /**
  * POST /items/lost
@@ -9,7 +68,7 @@ const aiService = require('../services/aiService');
  */
 router.post('/lost', async (req, res) => {
   try {
-    console.log('Received lost item request:', req.body);
+    console.log('🔍 Received lost item request:', req.body);
     
     const {
       imageUrl,
@@ -18,12 +77,22 @@ router.post('/lost', async (req, res) => {
       description,
       location,
       dateLost,
-      contactInfo
+      contactInfo,
+      userEmail // Add userEmail parameter
     } = req.body;
 
-    console.log('Extracted fields:', { itemType, category, description, location, dateLost });
+    console.log('🔍 Extracted fields:', { 
+      itemType, 
+      category, 
+      description, 
+      location, 
+      dateLost, 
+      contactInfo: contactInfo || userEmail || 'NOT_PROVIDED',
+      userEmail
+    });
 
     if (!itemType || !description || !location || !dateLost) {
+      console.log('❌ Validation failed - missing fields');
       return res.status(400).json({ 
         error: 'Missing required fields: itemType, description, location, dateLost' 
       });
@@ -35,17 +104,19 @@ router.post('/lost', async (req, res) => {
       description,
       location,
       dateLost: new Date(dateLost),
-      contactInfo: contactInfo || '',
+      contactInfo: contactInfo || userEmail || '', // Use userEmail if contactInfo not provided
       imageUrl: imageUrl || '',
       reportType: 'lost',
       status: 'active'
     };
 
+    console.log('💾 Saving to database with data:', itemData);
     const savedItem = await database.insertItem(itemData);
+    console.log('✅ Item saved to database:', savedItem);
 
     // Then, send to AI service for embedding and matching
     try {
-      console.log('About to call AI service with:', { imageUrl, description, location, category: itemType, reportType: 'lost' });
+      console.log('🤖 About to call AI service with:', { imageUrl, description, location, category: itemType, reportType: 'lost' });
       const aiResponse = await aiService.reportItem({
         imageUrl: imageUrl || '',
         description,
@@ -53,26 +124,31 @@ router.post('/lost', async (req, res) => {
         category: itemType,
         reportType: 'lost'
       });
-      console.log('AI service response received:', aiResponse);
+
+      console.log('✅ AI service response received:', aiResponse);
 
       res.status(201).json({ 
         message: 'Lost item created successfully',
         item: {
           ...savedItem,
           itemId: savedItem._id,
-          matches: aiResponse.matches
+          matches: aiResponse.matches || []
         }
       });
-
-    } catch (error) {
-      console.error('AI service error:', error);
-      res.status(500).json({ 
-        error: 'Failed to create lost item' 
+    } catch (aiError) {
+      console.error('❌ AI service error:', aiError);
+      // Still save item even if AI service fails
+      res.status(201).json({ 
+        message: 'Lost item created successfully (AI matching temporarily unavailable)',
+        item: {
+          ...savedItem,
+          itemId: savedItem._id,
+          matches: []
+        }
       });
     }
-
   } catch (error) {
-    console.error('Create lost item error:', error);
+    console.error('❌ Create lost item error:', error);
     res.status(500).json({ 
       error: 'Failed to create lost item' 
     });
@@ -91,7 +167,8 @@ router.post('/found', async (req, res) => {
       description,
       location,
       dateFound,
-      contactInfo
+      contactInfo,
+      userEmail // Add userEmail parameter
     } = req.body;
 
     if (!itemType || !description || !location || !dateFound) {
@@ -106,7 +183,7 @@ router.post('/found', async (req, res) => {
       description,
       location,
       dateFound: new Date(dateFound),
-      contactInfo: contactInfo || '',
+      contactInfo: contactInfo || userEmail || '', // Use userEmail if contactInfo not provided
       imageUrl: imageUrl || '',
       reportType: 'found',
       status: 'active'
@@ -125,16 +202,54 @@ router.post('/found', async (req, res) => {
         reportType: 'found'
       });
 
-      // Update item with AI-generated ID (no matches for found items)
+      // Update item with AI-generated ID
       await database.updateItem(savedItem._id, {
         itemId: aiResponse.item_id
       });
+
+      // Check for matches with existing lost items
+      try {
+        console.log('Checking for matches with lost items...');
+        const matchesResponse = await aiService.findSimilarItems(aiResponse.embedding || '', 5);
+        
+        if (matchesResponse && matchesResponse.length > 0) {
+          console.log(`Found ${matchesResponse.length} potential matches for found item`);
+          
+          // Get detailed information for matched lost items
+          for (const match of matchesResponse) {
+            if (match.score > 0.7) { // Only send notifications for high-confidence matches
+              try {
+                // Find the corresponding lost item in database
+                const lostItems = await database.getAllItems();
+                const matchedLostItem = lostItems.find(item => 
+                  item.reportType === 'lost' && 
+                  item.itemId === match.item_id
+                );
+                
+                if (matchedLostItem && matchedLostItem.contactInfo) {
+                  console.log(`Sending match notification for match score: ${match.score}`);
+                  await emailService.sendMatchNotification(
+                    matchedLostItem,
+                    { ...savedItem, itemId: aiResponse.item_id },
+                    match.score
+                  );
+                }
+              } catch (emailError) {
+                console.error('Failed to send email notification:', emailError);
+              }
+            }
+          }
+        }
+      } catch (matchError) {
+        console.error('Error finding matches:', matchError);
+      }
 
       res.status(201).json({ 
         message: 'Found item reported successfully',
         item: {
           ...savedItem,
-          itemId: aiResponse.item_id
+          itemId: aiResponse.item_id,
+          matchesProcessed: true
         }
       });
 
@@ -152,6 +267,46 @@ router.post('/found', async (req, res) => {
     res.status(500).json({ 
       error: 'Failed to create found item' 
     });
+  }
+});
+
+/**
+ * GET /items/lost
+ * Get all lost items
+ */
+router.get('/lost', async (req, res) => {
+  try {
+    await database.connect();
+    const allItems = await database.getAllItems();
+    
+    // Filter only lost items
+    const lostItems = allItems.filter(item => item.reportType === 'lost');
+    
+    console.log(`Found ${lostItems.length} lost items`);
+    res.json(lostItems);
+  } catch (error) {
+    console.error('Error fetching lost items:', error);
+    res.status(500).json({ error: 'Failed to fetch lost items' });
+  }
+});
+
+/**
+ * GET /items/found
+ * Get all found items
+ */
+router.get('/found', async (req, res) => {
+  try {
+    await database.connect();
+    const allItems = await database.getAllItems();
+    
+    // Filter only found items
+    const foundItems = allItems.filter(item => item.reportType === 'found');
+    
+    console.log(`Found ${foundItems.length} found items`);
+    res.json(foundItems);
+  } catch (error) {
+    console.error('Error fetching found items:', error);
+    res.status(500).json({ error: 'Failed to fetch found items' });
   }
 });
 

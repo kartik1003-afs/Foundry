@@ -6,7 +6,7 @@ import ImageUpload from '../components/ImageUpload';
 import api from '../services/api';
 
 const Found = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const toastShownRef = useRef(false);
   
@@ -58,7 +58,8 @@ const Found = () => {
         location: formData.location,
         dateFound: formData.dateFound,
         imageUrl: imageUrl,
-        contactInfo: formData.contactInfo
+        contactInfo: user.email, // Use authenticated user's email
+        userEmail: user.email // Add userEmail for backend
       };
 
       console.log('Submitting found item payload:', payload);

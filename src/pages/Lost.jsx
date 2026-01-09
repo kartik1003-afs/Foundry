@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ImageUpload from '../components/ImageUpload';
 
 const Lost = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const toastShownRef = useRef(false);
   
@@ -91,7 +91,8 @@ const Lost = () => {
         location: formData.location,
         dateLost: formData.dateLost,
         imageUrl: imageUrl,
-        contactInfo: '' // Add if you have user contact info
+        contactInfo: user.email, // Use authenticated user's email
+        userEmail: user.email // Add userEmail for backend
       };
 
       console.log('Submitting payload:', payload);
