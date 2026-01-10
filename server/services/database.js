@@ -1,23 +1,32 @@
 require('dotenv').config();
-const { MongoClient, ObjectId } = require('mongodb');
+const fs = require('fs').promises;
+const path = require('path');
 
 class DatabaseService {
   constructor() {
-    this.client = null;
-    this.db = null;
-    this.itemsCollection = null;
+    this.dbPath = path.join(__dirname, '../data/items.json');
+    this.items = [];
+    this.loadItems();
   }
 
-  async connect() {
+  async loadItems() {
     try {
-      this.client = new MongoClient(process.env.MONGODB_URI || 'mongodb://localhost:27017');
-      await this.client.connect();
-      this.db = this.client.db('foundry');
-      this.itemsCollection = this.db.collection('items');
-      console.log('Connected to MongoDB');
+      const data = await fs.readFile(this.dbPath, 'utf8');
+      this.items = JSON.parse(data);
+      console.log(`Loaded ${this.items.length} items from local storage`);
     } catch (error) {
-      console.error('Failed to connect to MongoDB:', error);
-      throw error;
+      console.log('No existing items file, starting with empty array');
+      this.items = [];
+      await this.saveItems();
+    }
+  }
+
+  async saveItems() {
+    try {
+      await fs.mkdir(path.dirname(this.dbPath), { recursive: true });
+      await fs.writeFile(this.dbPath, JSON.stringify(this.items, null, 2));
+    } catch (error) {
+      console.error('Error saving items:', error);
     }
   }
 
@@ -26,13 +35,15 @@ class DatabaseService {
       console.log('Attempting to insert item:', itemData);
       const item = {
         ...itemData,
-        _id: new ObjectId(),
+        _id: Date.now().toString(), // Use timestamp as ID
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      const result = await this.itemsCollection.insertOne(item);
-      console.log('Item inserted successfully, ID:', result.insertedId);
-      return { ...item, _id: result.insertedId.toString() };
+      
+      this.items.push(item);
+      await this.saveItems();
+      console.log('Item inserted successfully:', item);
+      return { ...item, _id: item._id };
     } catch (error) {
       console.error('Error inserting item:', error);
       throw error;
@@ -41,66 +52,77 @@ class DatabaseService {
 
   async getAllItems() {
     try {
-      const items = await this.itemsCollection.find({}).toArray();
-      return items.map(item => ({ ...item, _id: item._id.toString() }));
+      console.log('Fetching all items');
+      return this.items.map(item => ({ ...item, _id: item._id.toString() }));
     } catch (error) {
       console.error('Error fetching items:', error);
       throw error;
     }
   }
 
-  async getItemById(itemId) {
+  async getItemById(id) {
     try {
-      const item = await this.itemsCollection.findOne({ itemId });
-      return item ? { ...item, _id: item._id.toString() } : null;
+      const item = this.items.find(item => item._id.toString() === id.toString());
+      if (!item) {
+        throw new Error('Item not found');
+      }
+      return { ...item, _id: item._id.toString() };
     } catch (error) {
-      console.error('Error fetching item:', error);
+      console.error('Error fetching item by ID:', error);
       throw error;
     }
   }
 
-  async getItemsByType(reportType) {
+  async updateItem(id, updateData) {
     try {
-      const items = await this.itemsCollection.find({ reportType }).toArray();
-      return items.map(item => ({ ...item, _id: item._id.toString() }));
-    } catch (error) {
-      console.error('Error fetching items by type:', error);
-      throw error;
-    }
-  }
-
-  async updateItem(itemId, updateData) {
-    try {
-      const result = await this.itemsCollection.updateOne(
-        { itemId },
-        { 
-          $set: { 
-            ...updateData, 
-            updatedAt: new Date() 
-          } 
-        }
-      );
-      return result.modifiedCount > 0;
+      const index = this.items.findIndex(item => item._id.toString() === id.toString());
+      if (index === -1) {
+        throw new Error('Item not found');
+      }
+      
+      this.items[index] = {
+        ...this.items[index],
+        ...updateData,
+        updatedAt: new Date()
+      };
+      
+      await this.saveItems();
+      return { ...this.items[index], _id: this.items[index]._id.toString() };
     } catch (error) {
       console.error('Error updating item:', error);
       throw error;
     }
   }
 
-  async deleteItem(itemId) {
+  async deleteItem(id) {
     try {
-      const result = await this.itemsCollection.deleteOne({ itemId });
-      return result.deletedCount > 0;
+      const index = this.items.findIndex(item => item._id.toString() === id.toString());
+      if (index === -1) {
+        throw new Error('Item not found');
+      }
+      
+      const deletedItem = this.items.splice(index, 1)[0];
+      await this.saveItems();
+      return { ...deletedItem, _id: deletedItem._id.toString() };
     } catch (error) {
       console.error('Error deleting item:', error);
       throw error;
     }
   }
 
-  async close() {
-    if (this.client) {
-      await this.client.close();
+  async getItemsByType(type) {
+    try {
+      return this.items
+        .filter(item => item.itemType?.toLowerCase().includes(type.toLowerCase()))
+        .map(item => ({ ...item, _id: item._id.toString() }));
+    } catch (error) {
+      console.error('Error fetching items by type:', error);
+      throw error;
     }
+  }
+
+  async close() {
+    // Removed client close logic as it's not relevant to local JSON storage
   }
 }
 
