@@ -17,6 +17,8 @@ const Lost = () => {
     description: '',
     location: '',
     dateLost: '',
+    contactInfo: '',
+    contactNumber: '',
     images: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,12 +94,16 @@ const Lost = () => {
         dateLost: formData.dateLost,
         imageUrl: imageUrl,
         contactInfo: user.email, // Use authenticated user's email
+        contactNumber: formData.contactNumber, // Add contact number
+        reporterName: user.name, // Add reporter name
         userEmail: user.email // Add userEmail for backend
       };
 
       console.log('Submitting payload:', payload);
       console.log('Form data:', formData);
-      console.log('Images in form:', formData.images);
+      console.log('Contact Number from formData:', formData.contactNumber);
+      console.log('User Name:', user.name);
+      console.log('User Email:', user.email);
 
       const response = await api.items.createLostItem(payload);
       
@@ -366,14 +372,32 @@ const Lost = () => {
               
               <div>
                 <label htmlFor="contactInfo" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Contact Information *
+                  Email Address *
                 </label>
                 <input
                   type="email"
                   id="contactInfo"
                   name="contactInfo"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  value={user.email}
+                  readOnly
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="your.email@university.edu"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="contactNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Contact Number *
+                </label>
+                <input
+                  type="tel"
+                  id="contactNumber"
+                  name="contactNumber"
+                  value={formData.contactNumber}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Your phone number"
+                  required
                 />
               </div>
               

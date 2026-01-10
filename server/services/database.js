@@ -75,19 +75,26 @@ class DatabaseService {
 
   async updateItem(id, updateData) {
     try {
-      const index = this.items.findIndex(item => item._id.toString() === id.toString());
-      if (index === -1) {
-        throw new Error('Item not found');
-      }
-      
-      this.items[index] = {
-        ...this.items[index],
-        ...updateData,
-        updatedAt: new Date()
-      };
-      
-      await this.saveItems();
-      return { ...this.items[index], _id: this.items[index]._id.toString() };
+      const items = await this.itemsCollection.find({ reportType }).toArray();
+      return items.map(item => ({ ...item, _id: item._id.toString() }));
+    } catch (error) {
+      console.error('Error fetching items by type:', error);
+      throw error;
+    }
+  }
+
+  async updateItem(itemId, updateData) {
+    try {
+      const result = await this.itemsCollection.updateOne(
+        { itemId },
+        { 
+          $set: { 
+            ...updateData, 
+            updatedAt: new Date() 
+          } 
+        }
+      );
+      return result.modifiedCount > 0;
     } catch (error) {
       console.error('Error updating item:', error);
       throw error;

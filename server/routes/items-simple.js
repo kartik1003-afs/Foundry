@@ -70,6 +70,7 @@ router.post('/lost', async (req, res) => {
   try {
     console.log('🔍 Received lost item request:', req.body);
     
+    // Get all fields with proper fallbacks
     const {
       imageUrl,
       itemType,
@@ -78,7 +79,9 @@ router.post('/lost', async (req, res) => {
       location,
       dateLost,
       contactInfo,
-      userEmail // Add userEmail parameter
+      contactNumber,
+      reporterName,
+      userEmail
     } = req.body;
 
     console.log('🔍 Extracted fields:', { 
@@ -88,6 +91,8 @@ router.post('/lost', async (req, res) => {
       location, 
       dateLost, 
       contactInfo: contactInfo || userEmail || 'NOT_PROVIDED',
+      contactNumber: contactNumber || 'NOT_PROVIDED',
+      reporterName: reporterName || 'NOT_PROVIDED',
       userEmail
     });
 
@@ -98,13 +103,15 @@ router.post('/lost', async (req, res) => {
       });
     }
 
-    // First, save to database
+    // First, save to database with actual data provided
     const itemData = {
       itemType,
       description,
       location,
       dateLost: new Date(dateLost),
-      contactInfo: contactInfo || userEmail || '', // Use userEmail if contactInfo not provided
+      contactInfo: contactInfo || userEmail || 'unknown@example.com',
+      contactNumber: contactNumber || '', // Use actual contact number provided
+      reporterName: reporterName || '', // Use actual reporter name provided
       imageUrl: imageUrl || '',
       reportType: 'lost',
       status: 'active'
@@ -161,6 +168,9 @@ router.post('/lost', async (req, res) => {
  */
 router.post('/found', async (req, res) => {
   try {
+    console.log('🔍 Received found item request:', req.body);
+    
+    // Get all fields with proper fallbacks
     const {
       imageUrl,
       itemType,
@@ -168,8 +178,21 @@ router.post('/found', async (req, res) => {
       location,
       dateFound,
       contactInfo,
-      userEmail // Add userEmail parameter
+      contactNumber,
+      reporterName,
+      userEmail
     } = req.body;
+
+    console.log('🔍 Extracted fields:', { 
+      itemType, 
+      description, 
+      location, 
+      dateFound, 
+      contactInfo: contactInfo || userEmail || 'NOT_PROVIDED',
+      contactNumber: contactNumber || 'NOT_PROVIDED',
+      reporterName: reporterName || 'NOT_PROVIDED',
+      userEmail
+    });
 
     if (!itemType || !description || !location || !dateFound) {
       return res.status(400).json({ 
@@ -177,17 +200,21 @@ router.post('/found', async (req, res) => {
       });
     }
 
-    // First, save to database
+    // First, save to database with actual data provided
     const itemData = {
       itemType,
       description,
       location,
       dateFound: new Date(dateFound),
-      contactInfo: contactInfo || userEmail || '', // Use userEmail if contactInfo not provided
+      contactInfo: contactInfo || userEmail || 'unknown@example.com',
+      contactNumber: contactNumber || '', // Use actual contact number provided
+      reporterName: reporterName || '', // Use actual reporter name provided
       imageUrl: imageUrl || '',
       reportType: 'found',
       status: 'active'
     };
+
+    console.log('💾 Saving to database with data:', itemData);
 
     const savedItem = await database.insertItem(itemData);
     console.log('Found item saved to database:', savedItem);

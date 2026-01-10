@@ -17,6 +17,7 @@ const Found = () => {
     location: '',
     dateFound: '',
     contactInfo: '',
+    contactNumber: '',
     images: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,6 +60,8 @@ const Found = () => {
         dateFound: formData.dateFound,
         imageUrl: imageUrl,
         contactInfo: user.email, // Use authenticated user's email
+        contactNumber: formData.contactNumber, // Add contact number
+        reporterName: user.name, // Add reporter name
         userEmail: user.email // Add userEmail for backend
       };
 
@@ -79,6 +82,7 @@ const Found = () => {
           location: '',
           dateFound: '',
           contactInfo: '',
+          contactNumber: '',
           images: []
         });
       } else {
@@ -220,16 +224,31 @@ const Found = () => {
             
             <div>
               <label htmlFor="contactInfo" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Your Contact Information *
+                Email Address *
               </label>
               <input
                 type="email"
                 id="contactInfo"
                 name="contactInfo"
-                value={formData.contactInfo}
+                value={user.email}
+                readOnly
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="your.email@university.edu"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="contactNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Contact Number *
+              </label>
+              <input
+                type="tel"
+                id="contactNumber"
+                name="contactNumber"
+                value={formData.contactNumber}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder="your.email@university.edu"
+                placeholder="Your phone number"
                 required
               />
             </div>
